@@ -31,4 +31,4 @@ else
     echo ".zshrc 配置已更新。"
 fi
 
-echo "配置完成，请重新加载 Zsh 或运行 'source ~/.zshrc'。"
+jcho "配置完成，请重新加载 Zsh 或运行 'source ~/.zshrc'。"
