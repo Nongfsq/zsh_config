@@ -370,7 +370,7 @@ SPACESHIP_PROMPT_ORDER=(
   maven         # Maven
   gradle        # Gradle
   npm           # NPM
-  yarn          # Yarn
+  # yarn          # Yarn
   cargo         # Cargo
   pip           # Pip
   composer      # Composer
