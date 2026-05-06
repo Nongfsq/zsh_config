@@ -1,65 +1,152 @@
-# Zsh Configuration Setup / Zsh 配置设置
+# zsh_config
 
-此仓库包含用于配置 Zsh 及 Spaceship 主题的配置文件和脚本。
+Opinionated Zsh configuration for macOS and Unix-like shells built on Oh My Zsh and Spaceship.
 
-## Prerequisites / 前置条件
+The repository owns shared shell behavior. Machine-specific tools, secrets, and PATH changes belong in `~/.config/zsh/local.zsh`.
 
-在运行脚本之前，请确保系统已安装以下依赖项：
+> Readable first. Recoverable by design. Fast enough to trust.
 
-1. **Zsh**: 必须安装 Z shell。
-   - 在 Ubuntu 上安装 Zsh：
-     ```bash
-     sudo apt install zsh
-     ```
-   - 在 macOS 上安装 Zsh：
-     ```bash
-     brew install zsh
-     ```
+## Design Principles
 
-2. **Oh My Zsh**: 一个管理 Zsh 配置的社区驱动框架。
-   - 安装 Oh My Zsh：
-     ```bash
-     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-     ```
+- Shared behavior lives in the repository.
+- Host-specific behavior lives in the local override.
+- Every installation path has a dry-run mode.
+- Every failure path has a doctor command.
 
-3. **Spaceship Prompt**: 一款强大且美观的 Zsh 主题。  
-   请确保已安装 Spaceship Prompt，如果未安装，运行以下命令：
-   ```bash
-   git clone https://github.com/spaceship-prompt/spaceship-prompt.git "$ZSH/custom/themes/spaceship-prompt" --depth=1
-   ln -s "$ZSH/custom/themes/spaceship-prompt/spaceship.zsh-theme" "$ZSH/custom/themes/spaceship.zsh-theme"
+## System Shape
 
-## Installation / 安装
-克隆此仓库并运行安装脚本：
+```mermaid
+flowchart TB
+    Login["zsh login shell"] --> Zprofile["~/.zprofile"]
+    Zprofile --> Brew["Homebrew shellenv"]
+    Login --> Zshrc["~/.zshrc from this repo"]
+    Zshrc --> OMZ["oh-my-zsh"]
+    Zshrc --> SpaceCfg["~/.config/spaceship/spaceship.zsh"]
+    Zshrc --> Envman["envman, if installed"]
+    Zshrc --> Local["~/.config/zsh/local.zsh"]
+    OMZ --> Spaceship["spaceship theme"]
+    Local --> Private["pyenv, private tools, host PATH"]
+```
 
-````bash
-git clone https://github.com/Nongfsq/zsh_config.git
-cd zsh_config
-chmod +x setup_spaceship.sh
-./setup_spaceship.sh
-````
+## Install
 
-Post-Installation Verification / 安装后验证
-Reload Zsh: 确保在安装和配置完成后重新加载 Zsh 以应用更改：
+At a glance:
 
-````bash
-source ~/.zshrc
-````
+| Task | Command |
+| --- | --- |
+| Inspect | `python3 scripts/zsh_doctor.py` |
+| Dry-run install | `./setup_spaceship.sh --dry-run` |
+| Apply install | `./setup_spaceship.sh --apply` |
+| Validate shell | `zsh -lic 'echo LOGIN_OK'` |
 
-Verify Configuration / 验证配置:
+Dry-run first:
 
-确保终端已正确显示 Spaceship 主题。
-检查终端提示符是否显示时间、用户、目录、Git 状态等配置项。
-Troubleshooting / 问题排查:
+```sh
+./setup_spaceship.sh --dry-run
+```
 
-如果提示符未正确显示，请检查是否已正确安装支持 Nerd Fonts 的字体，并在终端设置中应用此字体。
+Apply:
 
-检查 .zshrc 文件中是否包含以下行：
-```bash
-ZSH_THEME="spaceship"
-# 加载自定义配置
-if [ -f ~/.config/spaceship/spaceship.zsh ]; then
-    source ~/.config/spaceship/spaceship.zsh
-fi
-````
-确保按上述步骤进行安装和配置，以获得完整的 Zsh 和 Spaceship 体验。
+```sh
+./setup_spaceship.sh --apply
+```
 
+What the setup does:
+
+- checks for Zsh and Oh My Zsh
+- installs the Spaceship theme under Oh My Zsh custom themes if missing
+- copies `spaceship/spaceship.zsh` to `~/.config/spaceship/spaceship.zsh`
+- backs up an existing non-symlink `~/.zshrc`
+- installs the repository `.zshrc`
+- creates `~/.config/zsh/local.zsh` if missing
+
+## Local Override
+
+Use this file for host-specific state:
+
+```sh
+~/.config/zsh/local.zsh
+```
+
+Example:
+
+```sh
+export PYENV_ROOT="$HOME/.pyenv"
+[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+command -v pyenv >/dev/null 2>&1 && eval "$(pyenv init -)"
+
+export PATH="$HOME/.antigravity/antigravity/bin:$PATH"
+```
+
+Keep private or host-only logic out of the shared `.zshrc`.
+
+## Doctor
+
+Run:
+
+```sh
+python3 scripts/zsh_doctor.py
+```
+
+It checks:
+
+- Zsh and Oh My Zsh presence
+- syntax for repository shell files
+- login shell startup errors
+- broken Homebrew zsh completion symlinks
+- duplicate PATH entries
+- repository/template drift in `~/.zshrc`
+- presence of the local override file
+
+JSON mode:
+
+```sh
+python3 scripts/zsh_doctor.py --json
+```
+
+## Validation
+
+```sh
+zsh -n .zshrc
+zsh -n setup_spaceship.sh
+zsh -n spaceship/spaceship.zsh
+python3 -m py_compile scripts/zsh_doctor.py
+python3 scripts/zsh_doctor.py
+zsh -lic 'echo LOGIN_OK'
+```
+
+Timing sample:
+
+```sh
+for i in 1 2 3; do /usr/bin/time -p zsh -lic 'exit'; done
+```
+
+## Troubleshooting
+
+### `compinit` reports a missing completion file
+
+Inspect broken symlinks:
+
+```sh
+find /opt/homebrew/share/zsh/site-functions -maxdepth 1 -type l ! -exec test -e {} \; -print
+```
+
+Repair the cache:
+
+```sh
+rm -f ~/.zcompdump*
+zsh -fc 'autoload -Uz compinit && compinit'
+```
+
+### `~/.zshrc` differs from the repository
+
+Move host-specific additions into `~/.config/zsh/local.zsh`, then run:
+
+```sh
+./setup_spaceship.sh --apply
+python3 scripts/zsh_doctor.py
+```
+
+## License
+
+MIT. See [LICENSE](LICENSE).
