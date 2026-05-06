@@ -268,6 +268,7 @@ spaceship_npm() {
 spaceship_yarn() {
   [[ -f package.json && -f yarn.lock ]] || return
   local yarn_version=$(yarn --version 2>/dev/null)
+  spaceship::section \
     $'\ue718 ' \
     "v${yarn_version}"
 }
@@ -276,6 +277,7 @@ spaceship_yarn() {
 spaceship_cargo() {
   [[ -f Cargo.toml ]] || return
   local cargo_version=$(cargo --version 2>/dev/null | cut -d' ' -f2)
+  spaceship::section \
     $'\ue7a8 ' \
     "v${cargo_version}"
 }
