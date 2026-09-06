@@ -71,7 +71,6 @@ def shell_probe() -> tuple[dict, str, int]:
         "}))\n"
         "PY\n"
         "print -r -- ZSH_DOCTOR_JSON_END;"
-        "print -rl -- $fpath > /tmp/zsh-doctor-fpath.$$"
     )
     result = run(["zsh", "-lic", script])
     output = (result.stdout or "") + (result.stderr or "")
@@ -100,18 +99,20 @@ def collect_checks() -> list[Check]:
         )
     )
 
+    zsh_dir = Path(os.environ.get("ZSH") or str(Path.home() / ".oh-my-zsh"))
     checks.append(
         Check(
             "oh_my_zsh",
             "oh-my-zsh directory",
-            "pass" if (Path.home() / ".oh-my-zsh").is_dir() else "fail",
-            str(Path.home() / ".oh-my-zsh"),
+            "pass" if (zsh_dir / "oh-my-zsh.sh").is_file() else "fail",
+            str(zsh_dir),
             "Install oh-my-zsh before running setup.",
         )
     )
 
     for relative in [".zshrc", "setup_spaceship.sh", "spaceship/spaceship.zsh"]:
-        result = run(["zsh", "-n", str(root / relative)], cwd=root)
+        shell = "bash" if relative.endswith(".sh") else "zsh"
+        result = run([shell, "-n", str(root / relative)], cwd=root)
         checks.append(
             Check(
                 f"syntax_{relative.replace('/', '_')}",
@@ -165,7 +166,7 @@ def collect_checks() -> list[Check]:
         )
     )
 
-    installed = Path.home() / ".zshrc"
+    installed = Path(os.environ.get("ZDOTDIR") or str(Path.home())) / ".zshrc"
     repo_zshrc = root / ".zshrc"
     if installed.exists():
         same = installed.read_text(encoding="utf-8", errors="replace") == repo_zshrc.read_text(
@@ -174,7 +175,7 @@ def collect_checks() -> list[Check]:
         checks.append(
             Check(
                 "zshrc_drift",
-                "~/.zshrc matches repository template",
+                "Installed .zshrc matches repository template",
                 "pass" if same else "warn",
                 "matches" if same else "differs",
                 "Run ./setup_spaceship.sh --apply after moving machine-local settings into ~/.config/zsh/local.zsh.",

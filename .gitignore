@@ -1,0 +1,9 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+
+# Raw terminal exports and machine-local files belong outside version control.
+local/
+*.local.*
+iterm2_profile.json
+.zsh_config_backup/

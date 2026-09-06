@@ -1,7 +1,7 @@
 # zsh_config managed shell entrypoint.
 # Machine-specific settings belong in ~/.config/zsh/local.zsh.
 
-export ZSH="$HOME/.oh-my-zsh"
+export ZSH="${ZSH:-$HOME/.oh-my-zsh}"
 ZSH_THEME="spaceship"
 plugins=(git)
 
